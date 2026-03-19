@@ -1,0 +1,19 @@
+venv/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Données générées — gaps et dataset non versionnés par défaut
+# Supprimer les lignes ci-dessous pour versionner le dataset
+data/gaps/gaps.json
+data/dataset/annotations.json
+data/dataset/train.spacy
+
+# Modèles spaCy locaux
+models/
+
+# Environnement
+.env

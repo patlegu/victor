@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "victor"
+version = "0.1.0"
+description = "Anonymiseur de logs et documents de sécurité — moteur NER + règles regex cyber"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+    "spacy>=3.7.0",
+]
+
+[project.optional-dependencies]
+# Modèle spaCy générique (fallback si AnonyNER absent)
+# python -m spacy download en_core_web_md
+
+# Modèle AnonyNER cyber (recommandé) :
+# pip install https://github.com/patlegu/anonyfiles/releases/download/anonyner-v3.0.0/en_anonyner-3.0.0.tar.gz
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["victor*"]
+
+[tool.setuptools.package-data]
+victor = ["config/*.json"]

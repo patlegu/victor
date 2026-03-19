@@ -1,0 +1,61 @@
+[
+  {
+    "_comment": "=== IP PRIVÉES RFC1918 ===",
+    "_note": "LIMITATION : remplacement statique — plusieurs IPs distinctes reçoivent le même token {{IP_PRIVE}}. La numérotation séquentielle (IP_001, IP_002…) nécessite un fix ReplacementSession dans le fork anonyfiles (shared_mapping_proxy task).",
+    "pattern": "\\b10\\.(?:\\d{1,3}\\.){2}\\d{1,3}\\b",
+    "replacement": "{{IP_PRIVE}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "IP privées RFC1918 — classe B (172.16.x.x … 172.31.x.x)",
+    "pattern": "\\b172\\.(?:1[6-9]|2\\d|3[01])\\.\\d{1,3}\\.\\d{1,3}\\b",
+    "replacement": "{{IP_PRIVE}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "IP privées RFC1918 — classe C (192.168.x.x)",
+    "pattern": "\\b192\\.168\\.\\d{1,3}\\.\\d{1,3}\\b",
+    "replacement": "{{IP_PRIVE}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== IDENTIFIANTS CVE ===",
+    "pattern": "\\bCVE-\\d{4}-\\d{4,7}\\b",
+    "replacement": "{{CVE_ID}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== HOSTNAMES — FQDN zones internes ===",
+    "_note": "Capture le FQDN complet (ex: fw01.company.local) en une seule entité. Suffixes couverts : .local, .lan, .internal, .corp, .home, .intranet, .priv.",
+    "pattern": "\\b(?:[a-zA-Z0-9](?:[a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?\\.)+(?:local|lan|internal|corp|home|intranet|priv)\\b",
+    "replacement": "{{HOSTNAME}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== HOSTNAMES — format numéroté courant en infra (srv-001, fw-02, dc1, …) ===",
+    "_note": "Pattern conservateur : préfixe connu + séparateur + chiffres. Ajuster selon les conventions de nommage du client.",
+    "pattern": "\\b(?:fw|rt|sw|srv|dc|wg|gw|vpn|idps|siem|proxy|bastion|log|mon|mgmt)-?\\d{2,4}\\b",
+    "replacement": "{{HOSTNAME}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== NOMS DE SERVICES INTERNES (SVC_*) ===",
+    "_note": "Couvre les identifiants de service typiques des stacks cyber : opnsense_*, crowdsec_*, wireguard_*, etc. Adapter le préfixe selon l'environnement.",
+    "pattern": "\\b(?:opnsense|crowdsec|wireguard|suricata|zeek|wazuh|graylog|syslog)[_\\-][a-zA-Z0-9_\\-]+",
+    "replacement": "{{SVC}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== ADRESSES MAC ===",
+    "pattern": "\\b(?:[0-9A-Fa-f]{2}[:\\-]){5}[0-9A-Fa-f]{2}\\b",
+    "replacement": "{{MAC_ADDR}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== TOKENS / CLÉS API (format hexadécimal long ou base64) ===",
+    "_note": "Capture les secrets typiques dans les logs : tokens JWT partiels, clés API, hashes. Seuil : 32+ caractères hex ou 40+ base64.",
+    "pattern": "\\b[0-9a-f]{32,64}\\b",
+    "replacement": "{{TOKEN_HEX}}",
+    "isRegex": true
+  }
+]

@@ -1,0 +1,12 @@
+# Victor — dépendances runtime
+spacy>=3.7.0
+
+# Modèle AnonyNER (recommandé — entités cyber)
+# pip install https://github.com/patlegu/anonyfiles/releases/download/anonyner-v3.0.0/en_anonyner-3.0.0.tar.gz
+
+# Modèle spaCy générique (fallback si AnonyNER absent)
+# python -m spacy download en_core_web_md
+
+# Dépendances de développement
+# pytest>=8.0
+# pytest-cov
