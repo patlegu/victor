@@ -32,7 +32,7 @@ Sont notamment concernés, sans que cette liste soit exhaustive :
 
 ## Processus de demande
 
-1. **Ouvrir une issue** sur le dépôt GitHub avec le label `licence-commerciale`
+1. **Ouvrir une issue** sur le dépôt GitHub avec le label `[Licensing Request]`
 2. Décrire l'organisation, le cas d'usage envisagé et le périmètre de déploiement
 3. Une réponse sera apportée dans un délai raisonnable
 

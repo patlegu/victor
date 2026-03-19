@@ -1,5 +1,11 @@
 # Victor
-Note : Ce logiciel est sous licence AGPL-3.0. L'utilisation commerciale ou privée par des tiers (notamment secteur Défense/Armement) nécessite une licence dérogatoire. Voir la section Licence en bas de page.
+
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
+[![Defense Restrictions](https://img.shields.io/badge/Restriction-Defense%20Sector-red.svg)](#licence)
+
+> **Note importante :** Ce logiciel est distribué sous licence **AGPL-3.0**. Son utilisation au sein du secteur de la **défense et de l'armement**, ou par des entités exigeant la confidentialité du code source, nécessite une licence commerciale dérogatoire. Voir la section [Licence](#licence) pour plus de détails.
+
+---
 
 Anonymiseur de logs et documents de sécurité.
 
@@ -329,4 +335,8 @@ Les entreprises dont les politiques internes interdisent l'utilisation de licenc
 
 Le détenteur des droits se réserve le droit de refuser la vente d'une licence commerciale à toute entité dont les activités ne sont pas en adéquation avec les valeurs du projet (notamment les secteurs de la défense et de l'armement).
 
-Pour toute demande de licence commerciale ou de partenariat, veuillez ouvrir une issue.
+### Demandes de dérogation
+Pour toute demande de licence commerciale dérogatoire ou pour discuter d'un cas d'usage spécifique (secteurs régulés, défense, infrastructure critique), 
+👉 [**Ouvrir une demande de licence dérogatoire**](https://github.com/patlegu/victor/issues/new?title=[Licensing+Request]+Nom+de+votre+entité&labels=%E2%9A%96%EF%B8%8F+Licensing+Request&body=Organisation+:+%0ASecteur+:+%0ACas+d'usage+:+%0ARaison+de+la+dérogation+:+)
+
+*Note : Les demandes anonymes ou incomplètes ne seront pas traitées.*
