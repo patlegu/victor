@@ -1,5 +1,12 @@
 # Victor
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
+[![Defense Restrictions](https://img.shields.io/badge/Restriction-Defense%20Sector-red.svg)](#license)
+
+> **Important notice:** This software is distributed under the **AGPL-3.0** license. Its use within the **defense and arms industry**, or by entities requiring source code confidentiality, requires a commercial license exemption. See the [License](#license) section for details.
+
+---
+
 Security log and document anonymizer.
 
 Detects and replaces sensitive entities (IPs, hostnames, CVEs, MAC addresses, service accounts…)
@@ -314,22 +321,6 @@ Add new rules manually in the JSON file or programmatically via `RuleWriter.add(
 
 ---
 
-## License
-
-This software is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
-
-The AGPL-3.0 ensures that all modified versions of Victor — including when used as a
-network service (SaaS, internal API) — must be redistributed with their source code
-under the same license.
-
-Organizations whose internal policies are incompatible with this requirement may apply
-for a **commercial license exemption**. See [LICENSING_REQUEST.md](LICENSING_REQUEST.md).
-
-The licensor reserves the right to refuse any request from entities whose activities
-are not aligned with the project's values (defense and arms industry in particular).
-
----
-
 ## Known limitations
 
 **Static tokens for custom rules** — multiple distinct IPs or hostnames matched by
@@ -340,3 +331,21 @@ by the spaCy NER model.
 **Fallback model** — without AnonyNER, the generic `en_core_web_md` model does not
 detect cyber-specific entities (IPs, hostnames, CVEs…). Custom rules still apply
 regardless of the model in use.
+
+## License
+
+This software is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+### Why AGPL-3.0?
+The AGPL-3.0 is a strong copyleft license designed to ensure that the source code of all modified versions of the software remains available to the community, even when the software is used exclusively over a network (SaaS/Cloud).
+
+### Commercial Use and Restrictions
+Organizations whose internal policies prohibit the use of AGPL-3.0 licenses (in particular for confidentiality or trade secret reasons) must obtain a **commercial license exemption**.
+
+The licensor reserves the right to refuse the sale of a commercial license to any entity whose activities are not aligned with the project's values (in particular the defense and arms industry).
+
+### Exemption Requests
+For any request for a commercial license exemption or to discuss a specific use case (regulated sectors, defense, critical infrastructure),
+👉 [**Open a license exemption request**](https://github.com/patlegu/victor/issues/new?title=[Licensing+Request]+Your+entity+name&labels=%E2%9A%96%EF%B8%8F+Licensing+Request&body=Organisation+:+%0ASector+:+%0AUse+case+:+%0AReason+for+exemption+:+)
+
+*Note: Anonymous or incomplete requests will not be processed.*
