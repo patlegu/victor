@@ -93,6 +93,37 @@ for gap in collector.candidates(min_occurrences=3, min_sessions=2):
     print(f"[{gap['label']}] {gap['text']}  ({gap['occurrences']}x, {gap['sessions']} sessions)")
 ```
 
+### Validation automatique via SLM (optionnel)
+
+Victor peut déléguer la validation des gaps à un SLM local via **Ollama**.
+Aucun GPU requis — tourne sur CPU avec `qwen2.5:1.5b` (~1 GB).
+
+```bash
+# Prérequis
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen2.5:1.5b
+```
+
+```python
+from victor import GapValidator, RuleWriter, AnnotationWriter
+
+validator  = GapValidator()                  # Ollama localhost:11434, qwen2.5:1.5b
+rule_writer = RuleWriter()
+ann_writer  = AnnotationWriter(data_dir=Path("data/dataset"))
+
+# Valide tous les candidats et applique les décisions automatiquement
+results = validator.validate_candidates(collector)
+# ACCEPT → collector.accept()  — prêt pour rule_writer / ann_writer
+# REJECT → collector.reject()  — blacklisté
+# unsure → laissé en pending   — validation humaine requise
+
+for r in results:
+    print(f"[{r['decision']}] {r['label']} '{r['text']}' — {r['reason']}")
+```
+
+Si Ollama n'est pas disponible, `validate()` retourne `decision="unsure"` sans exception.
+La validation humaine reste toujours possible indépendamment.
+
 ### Valider et écrire (piste courte — règle regex)
 
 ```python

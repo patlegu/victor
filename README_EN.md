@@ -117,6 +117,37 @@ print(collector.summary())
 # → {'pending': 4, 'accepted': 1, 'rejected': 0, 'total': 5}
 ```
 
+### Automatic validation via SLM (optional)
+
+Victor can delegate gap validation to a local SLM via **Ollama**.
+No GPU required — runs on CPU with `qwen2.5:1.5b` (~1 GB).
+
+```bash
+# Prerequisites
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull qwen2.5:1.5b
+```
+
+```python
+from victor import GapValidator, RuleWriter, AnnotationWriter
+
+validator   = GapValidator()                 # Ollama localhost:11434, qwen2.5:1.5b
+rule_writer = RuleWriter()
+ann_writer  = AnnotationWriter(data_dir=Path("data/dataset"))
+
+# Validate all candidates and apply decisions automatically
+results = validator.validate_candidates(collector)
+# ACCEPT → collector.accept()  — ready for rule_writer / ann_writer
+# REJECT → collector.reject()  — blacklisted
+# unsure → stays pending        — requires human review
+
+for r in results:
+    print(f"[{r['decision']}] {r['label']} '{r['text']}' — {r['reason']}")
+```
+
+If Ollama is not available, `validate()` returns `decision="unsure"` without raising an exception.
+Human validation always remains available independently.
+
 ### Fast track — new regex rule
 
 ```python

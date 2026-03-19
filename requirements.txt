@@ -1,6 +1,10 @@
 # Victor — dépendances runtime
 spacy>=3.7.0
 
+# Validation automatique des gaps (optionnel)
+# Nécessite Ollama : https://ollama.com/install
+# ollama pull qwen2.5:1.5b
+
 # Modèle AnonyNER (recommandé — entités cyber)
 # pip install https://github.com/patlegu/anonyfiles/releases/download/anonyner-v3.0.0/en_anonyner-3.0.0.tar.gz
 

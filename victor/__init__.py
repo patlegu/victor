@@ -17,6 +17,7 @@ from .anonymizer import Anonymizer
 from .gap_collector import GapCollector
 from .rule_writer import RuleWriter
 from .annotation_writer import AnnotationWriter
+from .gap_validator import GapValidator
 
-__all__ = ["Anonymizer", "GapCollector", "RuleWriter", "AnnotationWriter"]
+__all__ = ["Anonymizer", "GapCollector", "RuleWriter", "AnnotationWriter", "GapValidator"]
 __version__ = "0.1.0"
