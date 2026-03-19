@@ -6,11 +6,16 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Données générées — gaps et dataset non versionnés par défaut
-# Supprimer les lignes ci-dessous pour versionner le dataset
+# Données générées — non versionnées par défaut
 data/gaps/gaps.json
 data/dataset/annotations.json
 data/dataset/train.spacy
+
+# Logs — contenu sensible, jamais versionné
+logs/inbox/*
+logs/outbox/*
+!logs/inbox/.gitkeep
+!logs/outbox/.gitkeep
 
 # Modèles spaCy locaux
 models/

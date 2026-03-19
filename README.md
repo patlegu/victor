@@ -67,6 +67,77 @@ anon.get_session_mapping()   # mapping complet de la session courante
 
 ---
 
+## Traitement par batch de fichiers
+
+Victor traite les fichiers de logs en batch depuis un répertoire `inbox/`.
+Tous les fichiers d'un même batch partagent la même session — une entité
+anonymisée `{{IP_001}}` dans `firewall.log` sera `{{IP_001}}` dans `ids.log`.
+
+### Structure des répertoires
+
+```
+logs/
+├── inbox/                          ← déposer les logs ici
+
+logs/outbox/
+└── batch_20260319_143022/
+    ├── batch_mapping.json          ← mapping global du batch {original: token}
+    ├── batch_report.json           ← résumé (stats, fichiers, gaps)
+    ├── clean/                      ← anonymisés, 0 gap résiduel
+    │   ├── firewall.log.anon
+    │   └── ids.log.anon
+    ├── partial/                    ← anonymisés, gaps résiduels (review recommandée)
+    │   └── crowdsec.log.anon
+    └── error/                      ← échec de traitement
+        └── corrupted.bin.error.txt
+```
+
+### Lancer un batch
+
+```python
+from pathlib import Path
+from victor import LogProcessor
+
+processor = LogProcessor(
+    inbox_dir  = Path("logs/inbox"),
+    outbox_dir = Path("logs/outbox"),
+)
+report = processor.process_batch()
+
+print(f"Batch {report['batch_id']}")
+print(f"  clean: {report['clean']}  partial: {report['partial']}  error: {report['error']}")
+print(f"  tokens: {report['total_tokens']}")
+```
+
+### Avec GapCollector intégré
+
+```python
+from victor import LogProcessor, GapCollector
+
+collector = GapCollector(data_dir=Path("data"))
+processor = LogProcessor(
+    inbox_dir      = Path("logs/inbox"),
+    outbox_dir     = Path("logs/outbox"),
+    gap_collector  = collector,
+)
+processor.process_batch()
+
+# Gaps accumulés sur tous les fichiers du batch
+for gap in collector.candidates(min_occurrences=2, min_sessions=1):
+    print(f"[{gap['label']}] {gap['text']} — {gap['occurrences']}x")
+```
+
+### Consulter les batches passés
+
+```python
+for batch in processor.list_batches():
+    print(f"{batch['batch_id']} — {batch['total_files']} fichiers")
+
+mapping = processor.get_batch_mapping("batch_20260319_143022")
+```
+
+---
+
 ## Auto-apprentissage
 
 Victor détecte les **gaps NER** — entités vues par le modèle mais non anonymisées

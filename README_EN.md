@@ -76,6 +76,77 @@ anon.get_session_mapping()   # full mapping for the current session
 
 ---
 
+## Batch log processing
+
+Victor processes log files in batches from an `inbox/` directory.
+All files in the same batch share the same session — an entity anonymized
+as `{{IP_001}}` in `firewall.log` will be `{{IP_001}}` in `ids.log`.
+
+### Directory structure
+
+```
+logs/
+├── inbox/                          ← drop log files here
+
+logs/outbox/
+└── batch_20260319_143022/
+    ├── batch_mapping.json          ← global batch mapping {original: token}
+    ├── batch_report.json           ← summary (stats, files, gaps)
+    ├── clean/                      ← anonymized, 0 residual gaps
+    │   ├── firewall.log.anon
+    │   └── ids.log.anon
+    ├── partial/                    ← anonymized, residual gaps (review recommended)
+    │   └── crowdsec.log.anon
+    └── error/                      ← processing failure
+        └── corrupted.bin.error.txt
+```
+
+### Run a batch
+
+```python
+from pathlib import Path
+from victor import LogProcessor
+
+processor = LogProcessor(
+    inbox_dir  = Path("logs/inbox"),
+    outbox_dir = Path("logs/outbox"),
+)
+report = processor.process_batch()
+
+print(f"Batch {report['batch_id']}")
+print(f"  clean: {report['clean']}  partial: {report['partial']}  error: {report['error']}")
+print(f"  tokens: {report['total_tokens']}")
+```
+
+### With integrated GapCollector
+
+```python
+from victor import LogProcessor, GapCollector
+
+collector = GapCollector(data_dir=Path("data"))
+processor = LogProcessor(
+    inbox_dir      = Path("logs/inbox"),
+    outbox_dir     = Path("logs/outbox"),
+    gap_collector  = collector,
+)
+processor.process_batch()
+
+# Gaps accumulated across all files in the batch
+for gap in collector.candidates(min_occurrences=2, min_sessions=1):
+    print(f"[{gap['label']}] {gap['text']} — {gap['occurrences']}x")
+```
+
+### Browse past batches
+
+```python
+for batch in processor.list_batches():
+    print(f"{batch['batch_id']} — {batch['total_files']} files")
+
+mapping = processor.get_batch_mapping("batch_20260319_143022")
+```
+
+---
+
 ## Self-learning loop
 
 Victor tracks **NER gaps** — entities detected by the model but not anonymized by the

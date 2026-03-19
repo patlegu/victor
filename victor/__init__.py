@@ -18,6 +18,14 @@ from .gap_collector import GapCollector
 from .rule_writer import RuleWriter
 from .annotation_writer import AnnotationWriter
 from .gap_validator import GapValidator
+from .log_processor import LogProcessor
 
-__all__ = ["Anonymizer", "GapCollector", "RuleWriter", "AnnotationWriter", "GapValidator"]
+__all__ = [
+    "Anonymizer",
+    "GapCollector",
+    "RuleWriter",
+    "AnnotationWriter",
+    "GapValidator",
+    "LogProcessor",
+]
 __version__ = "0.1.0"
