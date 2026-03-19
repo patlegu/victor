@@ -1,4 +1,5 @@
 # Victor
+Note : Ce logiciel est sous licence AGPL-3.0. L'utilisation commerciale ou privée par des tiers (notamment secteur Défense/Armement) nécessite une licence dérogatoire. Voir la section Licence en bas de page.
 
 Anonymiseur de logs et documents de sécurité.
 
@@ -315,3 +316,17 @@ entités détectées par le NER spaCy.
 **Modèle de fallback** — sans AnonyNER, le modèle générique `en_core_web_md`
 ne détecte pas les entités cyber (IPs, hostnames, CVE…). Les custom rules
 fonctionnent dans les deux cas.
+
+## Licence
+
+Ce logiciel est distribué sous la licence **GNU Affero General Public License v3.0 (AGPL-3.0)**. 
+
+### Pourquoi l'AGPL-3.0 ?
+L'AGPL-3.0 est une licence de "copyleft" fort conçue pour garantir que le code source de toutes les versions modifiées du logiciel soit mis à la disposition de la communauté, même si le logiciel est utilisé uniquement via un réseau (SaaS/Cloud). 
+
+### Utilisation Commerciale et Restrictions
+Les entreprises dont les politiques internes interdisent l'utilisation de licences AGPL-3.0 (notamment pour des raisons de confidentialité ou de secret industriel) doivent acquérir une **licence commerciale dérogatoire**.
+
+Le détenteur des droits se réserve le droit de refuser la vente d'une licence commerciale à toute entité dont les activités ne sont pas en adéquation avec les valeurs du projet (notamment les secteurs de la défense et de l'armement).
+
+Pour toute demande de licence commerciale ou de partenariat, veuillez ouvrir une issue.

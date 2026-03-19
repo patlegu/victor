@@ -7,7 +7,7 @@ name = "victor"
 version = "0.1.0"
 description = "Anonymiseur de logs et documents de sécurité — moteur NER + règles regex cyber"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-only" }
 
 dependencies = [
     "spacy>=3.7.0",

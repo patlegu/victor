@@ -314,6 +314,22 @@ Add new rules manually in the JSON file or programmatically via `RuleWriter.add(
 
 ---
 
+## License
+
+This software is distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+The AGPL-3.0 ensures that all modified versions of Victor — including when used as a
+network service (SaaS, internal API) — must be redistributed with their source code
+under the same license.
+
+Organizations whose internal policies are incompatible with this requirement may apply
+for a **commercial license exemption**. See [LICENSING_REQUEST.md](LICENSING_REQUEST.md).
+
+The licensor reserves the right to refuse any request from entities whose activities
+are not aligned with the project's values (defense and arms industry in particular).
+
+---
+
 ## Known limitations
 
 **Static tokens for custom rules** — multiple distinct IPs or hostnames matched by
