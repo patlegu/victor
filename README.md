@@ -356,6 +356,43 @@ et lancer `annotate_corpus.py` (voir [training/README.md](training/README.md)).
 
 ---
 
+## Labels NER
+
+**Réseau / Firewall**
+
+| Label | Entités détectées |
+|-------|-------------------|
+| `IP_ADDRESS` | Adresses IPv4 et IPv6 |
+| `IP_SUBNET` | Sous-réseaux CIDR (`10.0.0.0/8`…) |
+| `HOSTNAME` | Hostnames et FQDNs internes |
+| `INTERFACE` | Interfaces réseau (`eth0`, `wg0`, `en0`…) |
+| `MAC_ADDRESS` | Adresses MAC (`aa:bb:cc:dd:ee:ff`) |
+| `PORT_NUMBER` | Numéros de port |
+| `CVE` | Identifiants CVE (`CVE-YYYY-NNNNN`) |
+| `SERVICE_ACCOUNT` | Comptes de service infra (`crowdsec-agent`, `wireguard_peer`…) |
+| `FIREWALL_RULE` | Règles et noms de politiques firewall |
+| `VPN_USER` | Identifiants utilisateur VPN |
+
+**Linux / Unix**
+
+| Label | Entités détectées |
+|-------|-------------------|
+| `UNIX_USER` | Utilisateurs OS locaux (`root`, `www-data`, `oracle`, `postgres`…) |
+| `PROCESS_NAME` | Processus et daemons (`sshd`, `ftpd`, `cron`, `kernel`, `sudo`…) |
+| `FILE_PATH` | Chemins filesystem (`/etc/passwd`, `/var/log/`, `/home/user/`…) |
+
+**Windows**
+
+| Label | Entités détectées |
+|-------|-------------------|
+| `WIN_USER` | Comptes Windows (`DOMAIN\user`, `user@corp.local`, `Administrator`) |
+| `WIN_SID` | Security Identifiers (`S-1-5-21-…`) |
+| `WIN_HOST` | Noms de machines Windows (`DESKTOP-AB12CD`, `COMPUTER01$`) |
+| `WIN_SERVICE` | Services et processus Windows (`lsass.exe`, `winlogon.exe`, `SYSTEM`) |
+| `REGISTRY_KEY` | Clés de registre (`HKLM\SOFTWARE\…`, `HKCU\…`) |
+
+---
+
 ## Règles custom
 
 Les règles pré-définies dans `victor/config/custom_rules_security.json` couvrent :
@@ -369,6 +406,10 @@ Les règles pré-définies dans `victor/config/custom_rules_security.json` couvr
 | Services internes | `crowdsec-agent`, `wireguard_peer` |
 | Adresses MAC | `aa:bb:cc:dd:ee:ff` |
 | Tokens hexadécimaux | secrets 32–64 chars hex |
+| Windows SID | `S-1-5-21-…` |
+| Clés de registre | `HKLM\SOFTWARE\…`, `HKCU\…` |
+| Chemins Linux | `/etc/…`, `/var/…`, `/home/…` |
+| Chemins Windows | `C:\Windows\…`, `D:\…` |
 
 Ajouter des règles manuellement dans le JSON ou via `RuleWriter.add()`.
 

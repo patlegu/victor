@@ -57,5 +57,31 @@
     "pattern": "\\b[0-9a-f]{32,64}\\b",
     "replacement": "{{TOKEN_HEX}}",
     "isRegex": true
+  },
+  {
+    "_comment": "=== WINDOWS — Security Identifier (SID) ===",
+    "pattern": "\\bS-1-\\d+-\\d+(?:-\\d+)*\\b",
+    "replacement": "{{WIN_SID}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== WINDOWS — Chemin de registre ===",
+    "pattern": "\\bHK(?:LM|CU|CR|U|CC)\\\\[^\\s\"']+",
+    "replacement": "{{REGISTRY_KEY}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== LINUX / UNIX — Chemins filesystem sensibles ===",
+    "_note": "Capture les chemins absolus Unix commençant par /home, /etc, /var, /root, /srv, /opt, /tmp.",
+    "pattern": "(?:/(?:home|etc|var|root|srv|opt|tmp)/[^\\s\"'\\]\\)]+)",
+    "replacement": "{{FILE_PATH}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== WINDOWS — Chemins filesystem ===",
+    "_note": "Capture les chemins Windows typiques (C:\\..., D:\\...).",
+    "pattern": "\\b[A-Za-z]:\\\\(?:[^\\s\"']+)",
+    "replacement": "{{FILE_PATH}}",
+    "isRegex": true
   }
 ]
