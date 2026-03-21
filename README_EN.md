@@ -271,6 +271,8 @@ victor/
 ├── gap_collector.py     — GapCollector: aggregation, scoring, proposals
 ├── rule_writer.py       — RuleWriter: fast track → custom_rules.json
 ├── annotation_writer.py — AnnotationWriter: long track → train.spacy
+├── gap_validator.py     — GapValidator: automatic validation via Ollama (circuit 1)
+├── log_processor.py     — LogProcessor: batch inbox/outbox processing
 ├── ner_extractor.py     — NERExtractor: NER observability (gap detection)
 ├── engine/              — Anonymization engine
 │   ├── engine.py        — AnonyfilesEngine.anonymize_text()
@@ -289,6 +291,19 @@ data/
 ├── gaps/        — gaps.json  (GapCollector persistence)
 ├── reviewed/    — review exports (free use)
 └── dataset/     — annotations.json + train.spacy (long track)
+
+training/               — AnonyNER training pipeline (not versioned)
+├── logs/               — raw logs by source (circuit 2)
+│   ├── linux/
+│   ├── apache/
+│   └── windows/
+├── scripts/
+│   ├── annotate_corpus.py    — circuit 2: raw log annotation + confidence score
+│   ├── review_corpus.py      — circuit 2: human review CLI
+│   ├── prepare_spacy_dataset.py
+│   └── train_anonyner.py
+├── data/               — annotated corpora + compiled datasets
+└── models/             — trained models
 ```
 
 ### Anonymization pipeline
@@ -300,6 +315,35 @@ raw text
               └─► ReplacementGenerator  (consistent tokens: HOST_001, IP_001…)
                     └─► anonymized text + mapping + report
 ```
+
+### Self-learning — Circuit 1 (known formats)
+
+```
+anonymize_*()
+  └─► ner_gaps (unhandled entities)
+        └─► GapCollector.record()
+              └─► frequency N / M sessions
+                    └─► candidates()
+                          ├─► to_regex_rule()      → RuleWriter    → custom_rules.json
+                          └─► to_spacy_examples()  → AnnotationWriter → train.spacy
+```
+
+### Annotation pipeline — Circuit 2 (unknown formats)
+
+For log formats the model does not yet understand (Linux syslog, Apache, Windows Event Log…),
+an external LLM annotates raw logs with per-entity confidence scores.
+High-confidence annotations are auto-accepted; low-confidence ones go to a human review queue.
+
+```
+training/logs/<source>/
+  └─► annotate_corpus.py     (Ollama qwen2.5-coder:7b, per-entity confidence)
+        ├─► confidence ≥ threshold → <source>_annotated.jsonl  (auto-accept)
+        └─► confidence < threshold → <source>_review.jsonl     (human spot-check)
+              └─► review_corpus.py  (CLI: accept / edit label / skip)
+  └─► prepare_spacy_dataset.py → train.spacy → train_anonyner.py
+```
+
+Both circuits feed the same spaCy training pipeline.
 
 ---
 
@@ -321,6 +365,36 @@ Add new rules manually in the JSON file or programmatically via `RuleWriter.add(
 
 ---
 
+## Supported log formats
+
+AnonyNER detection coverage by log format. Status reflects NER quality only —
+regex rules (always active) provide a baseline regardless of format.
+
+| Format | Source | Status | Circuit | Notes |
+|--------|--------|--------|---------|-------|
+| OPNsense firewall | Network | ✅ Good | 1 | Included in v3 training corpus |
+| WireGuard | VPN | ✅ Good | 1 | Included in v3 training corpus |
+| CrowdSec | IDS/IPS | ✅ Good | 1 | Included in v3 training corpus |
+| Linux syslog | System | ⚠️ Partial | 2 | False positives on PIDs, timestamps — corpus needed |
+| Apache / Nginx | Web | 🔲 Not tested | 2 | |
+| Windows Event Log | System | 🔲 Not tested | 2 | |
+| Fortinet / FortiGate | Network | 🔲 Not tested | 2 | |
+| Stormshield | Network | 🔲 Not tested | 2 | |
+| Journald (systemd) | System | 🔲 Not tested | 2 | |
+| Auditd | System | 🔲 Not tested | 2 | |
+| Syslog-ng / rsyslog | Aggregator | 🔲 Not tested | 2 | |
+| Kubernetes / containerd | Cloud | 🔲 Not tested | 2 | |
+
+**Legend:**
+- ✅ Good — reliable detection, few false positives
+- ⚠️ Partial — degraded detection, circuit 2 corpus recommended
+- 🔲 Not tested — contributions welcome (`training/logs/<source>/`)
+
+To contribute a new format: drop raw logs into `training/logs/<source>/`
+and run `annotate_corpus.py` (see [training/README.md](training/README.md)).
+
+---
+
 ## Known limitations
 
 **Static tokens for custom rules** — multiple distinct IPs or hostnames matched by
@@ -331,6 +405,10 @@ by the spaCy NER model.
 **Fallback model** — without AnonyNER, the generic `en_core_web_md` model does not
 detect cyber-specific entities (IPs, hostnames, CVEs…). Custom rules still apply
 regardless of the model in use.
+
+**Firewall/network specialization** — AnonyNER v3 was trained primarily on OPNsense,
+CrowdSec, and WireGuard logs. Linux application logs (syslog, journald) or Windows
+Event Logs require corpus enrichment before achieving reliable detection.
 
 ## License
 
