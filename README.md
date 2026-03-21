@@ -247,8 +247,10 @@ victor/
 ├── gap_collector.py     — GapCollector : agrégation, scoring, propositions
 ├── rule_writer.py       — RuleWriter : piste courte → custom_rules.json
 ├── annotation_writer.py — AnnotationWriter : piste longue → train.spacy
+├── gap_validator.py     — GapValidator : validation automatique via Ollama (circuit 1)
+├── log_processor.py     — LogProcessor : traitement batch inbox/outbox
 ├── ner_extractor.py     — NERExtractor : observabilité NER (gaps moteur)
-├── engine/              — Moteur d'anonymisation (extrait de anonyfiles_core)
+├── engine/              — Moteur d'anonymisation
 │   ├── engine.py        — AnonyfilesEngine.anonymize_text()
 │   ├── replacer.py      — ReplacementSession (stateful)
 │   ├── ner_processor.py — Détection NER spaCy + regex
@@ -265,6 +267,19 @@ data/
 ├── gaps/        — gaps.json (persistance GapCollector)
 ├── reviewed/    — exports de review (usage libre)
 └── dataset/     — annotations.json + train.spacy (piste longue)
+
+training/               — pipeline d'entraînement AnonyNER (non versionné)
+├── logs/               — logs bruts par source (circuit 2)
+│   ├── linux/
+│   ├── apache/
+│   └── windows/
+├── scripts/
+│   ├── annotate_corpus.py    — circuit 2 : annotation logs bruts + score confiance
+│   ├── review_corpus.py      — circuit 2 : revue humaine CLI
+│   ├── prepare_spacy_dataset.py
+│   └── train_anonyner.py
+├── data/               — corpus annotés + compilés
+└── models/             — modèles entraînés
 ```
 
 ### Flux d'anonymisation
@@ -277,7 +292,7 @@ texte brut
                     └─► texte anonymisé + mapping + rapport
 ```
 
-### Flux d'auto-apprentissage
+### Flux d'auto-apprentissage — Circuit 1 (formats connus)
 
 ```
 anonymize_*()
@@ -291,6 +306,23 @@ anonymize_*()
 
 La validation humaine est le seul verrou entre `candidates()` et l'écriture.
 `GapCollector` ne modifie jamais les fichiers de sortie de lui-même.
+
+### Flux d'annotation — Circuit 2 (nouveaux formats)
+
+Pour les formats inconnus du modèle (Linux syslog, Apache, Windows Event Log…),
+un pipeline d'annotation externe basé sur un LLM plus puissant génère le corpus
+d'entraînement avec filtrage par score de confiance.
+
+```
+training/logs/<source>/
+  └─► annotate_corpus.py     (Ollama qwen2.5-coder:7b, score confiance par entité)
+        ├─► confiance ≥ seuil → <source>_annotated.jsonl  (auto-accept)
+        └─► confiance < seuil → <source>_review.jsonl     (spot-check humain)
+              └─► review_corpus.py  (CLI : accept / edit label / skip)
+  └─► prepare_spacy_dataset.py → train.spacy → train_anonyner.py
+```
+
+Les deux circuits alimentent le même pipeline d'entraînement spaCy.
 
 ---
 
