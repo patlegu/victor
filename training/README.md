@@ -175,8 +175,17 @@ python training/scripts/train_anonyner.py
 
 ```bash
 pip install spacy
-python -m spacy download en_core_web_md   # tokeniseur pour l'alignement
+
+# AnonyNER v3 — modèle de base pour le fine-tuning et le tokeniseur d'alignement
+pip install https://github.com/patlegu/anonyfiles/releases/download/anonyner-v3.0.0/en_anonyner-3.0.0.tar.gz
 ```
+
+AnonyNER v3 remplace `en_core_web_md` à deux niveaux :
+- **Tokeniseur d'alignement** dans `prepare_spacy_dataset.py` — même tokeniseur que celui
+  utilisé en production, évite les désalignements d'offsets
+- **Modèle de base pour le fine-tuning** — partir de v3 plutôt que d'un modèle générique
+  préserve les acquis (OPNsense, CrowdSec, WireGuard) et accélère la convergence sur
+  les nouveaux formats
 
 ### Étape 1 — Générer des données supplémentaires (optionnel)
 
