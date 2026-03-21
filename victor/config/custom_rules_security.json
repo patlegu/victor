@@ -83,5 +83,61 @@
     "pattern": "\\b[A-Za-z]:\\\\(?:[^\\s\"']+)",
     "replacement": "{{FILE_PATH}}",
     "isRegex": true
+  },
+  {
+    "_comment": "=== WINDOWS — Event ID (Security/System/Application logs) ===",
+    "_note": "Capture les patterns courants : EventID=4624, Event ID: 4624, EventCode=4624. Les IDs seuls (4624) ne sont pas capturés pour éviter les faux positifs sur les nombres.",
+    "pattern": "\\b(?:EventID|EventCode|Event\\s+ID)[=:\\s]+([0-9]{3,5})\\b",
+    "replacement": "{{EVENT_ID}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== WINDOWS — Tâches planifiées ===",
+    "_note": "Capture les chemins de tâches planifiées Windows (commencent par \\Microsoft\\ ou \\...).",
+    "pattern": "\\\\(?:Microsoft|Windows|Tasks)\\\\[^\\s\"']+",
+    "replacement": "{{SCHEDULED_TASK}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== PROTOCOLES RÉSEAU ===",
+    "_note": "Capture les mots-clés protocole en majuscules dans les logs firewall/réseau. Contexte requis (précédé de proto/protocol/= ou suivi de port/) pour éviter les faux positifs.",
+    "pattern": "\\b(?:proto(?:col)?[=:\\s]+|/)(?:TCP|UDP|ICMP|ICMPv6|GRE|ESP|AH|SCTP)\\b",
+    "replacement": "{{PROTOCOL}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== ACTIONS FIREWALL ===",
+    "_note": "Capture les actions de filtrage réseau. Pattern conservateur : mot isolé en majuscules parmi la liste connue.",
+    "pattern": "\\b(?:ALLOW|ALLOWED|DROP|DROPPED|DENY|DENIED|BLOCK|BLOCKED|PASS|REJECT|REJECTED|ACCEPT|ACCEPTED)\\b",
+    "replacement": "{{ACTION}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== URL / URI ===",
+    "_note": "Capture les URLs HTTP/HTTPS complètes et les URIs de chemin web (/path/to/resource). Exclut les chemins Unix couverts par FILE_PATH.",
+    "pattern": "https?://[^\\s\"'<>]+|(?<=[\\s\"'])(/[a-zA-Z0-9_.~!*'();:@&=+$,/?#\\[\\]-]{4,})",
+    "replacement": "{{URL_URI}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== AUTONOMOUS SYSTEM NUMBER (ASN) ===",
+    "_note": "Capture les numéros AS au format AS suivi de chiffres (AS13335, AS15169).",
+    "pattern": "\\bAS([0-9]{1,10})\\b",
+    "replacement": "{{ASN}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== PROCESS ID (PID) ===",
+    "_note": "Capture les PIDs avec contexte explicite pour éviter les faux positifs sur les nombres isolés.",
+    "pattern": "\\b(?:pid|PID)[=:\\[\\s]+([0-9]{1,7})[\\]\\s]",
+    "replacement": "{{PID}}",
+    "isRegex": true
+  },
+  {
+    "_comment": "=== EMPREINTES DE FICHIERS (FILE_HASH) ===",
+    "_note": "Capture SHA256/SHA1/MD5 avec label explicite ou hashes longs précédés de leur algorithme.",
+    "pattern": "\\b(?:SHA256|SHA1|MD5)[=:\\s]+([0-9a-fA-F]{32,64})\\b",
+    "replacement": "{{FILE_HASH}}",
+    "isRegex": true
   }
 ]

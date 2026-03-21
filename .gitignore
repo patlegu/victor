@@ -10,6 +10,7 @@ __pycache__/
 data/gaps/gaps.json
 data/dataset/annotations.json
 data/dataset/train.spacy
+data/ner/
 
 # Logs — contenu sensible, jamais versionné
 logs/inbox/*
@@ -22,11 +23,8 @@ logs/archive/*
 # Modèles spaCy locaux
 models/
 
-# Entraînement AnonyNER — données et scripts non versionnés pour l'instant
-training/scripts/
-training/data/
-training/models/
-training/output/
+# Entraînement AnonyNER — hors dépôt pour l'instant
+training/
 
 # Environnement
 .env
