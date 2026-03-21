@@ -20,5 +20,8 @@ logs/outbox/*
 # Modèles spaCy locaux
 models/
 
+# Entraînement AnonyNER — non versionné pour l'instant
+training/
+
 # Environnement
 .env
