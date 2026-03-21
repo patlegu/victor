@@ -12,15 +12,60 @@ hostnames, CVE, adresses MAC, comptes de service, interfaces réseau, etc.
 
 ---
 
+## Deux circuits d'apprentissage
+
+### Circuit 1 — Auto-apprentissage sur formats connus
+
+Le modèle AnonyNER comprend déjà le format (firewall, CrowdSec, WireGuard).
+Les gaps sont des entités manquantes, pas des erreurs de classification.
+Le signal est fiable → automation possible avec un SLM léger (CPU).
+
+```
+logs (formats connus)
+  └─► Anonymizer → ner_gaps
+        └─► GapCollector (score fréquence)
+              └─► GapValidator (Ollama qwen2.5:1.5b, CPU)
+                    ├─► ACCEPT → RuleWriter / AnnotationWriter
+                    └─► REJECT → blacklist
+```
+
+Géré directement par le package Victor — voir `victor/gap_collector.py`.
+
+### Circuit 2 — Nouveaux formats inconnus
+
+Le modèle ne comprend pas le format (Linux syslog, Apache, Windows Event Log…).
+Il projette ses labels sur n'importe quoi → les annotations auto seraient corrompues.
+Un LLM externe plus capable (qwen2.5-coder:7b) annote les logs bruts avec un score
+de confiance. Les annotations au-dessus du seuil sont auto-acceptées, les autres
+sont mises en file de revue humaine (spot-check, pas révision exhaustive).
+
+```
+training/logs/<source>/          ← logs bruts déposés ici
+  └─► annotate_corpus.py         (Ollama qwen2.5-coder:7b + score confiance)
+        ├─► confiance ≥ seuil → <source>_annotated.jsonl  (auto-accept)
+        └─► confiance < seuil → <source>_review.jsonl     (revue humaine)
+              └─► review_corpus.py  (CLI : accept / edit / skip)
+                    └─► <source>_annotated.jsonl
+  └─► prepare_spacy_dataset.py → train.spacy → train_anonyner.py
+```
+
+---
+
 ## Structure
 
 ```
 training/
 ├── scripts/
-│   ├── generate_ner_dataset.py    — génération via Ollama (logs bruts → JSONL annoté)
+│   ├── annotate_corpus.py         — Circuit 2 : annotation logs bruts via Ollama
+│   ├── review_corpus.py           — Circuit 2 : revue humaine (CLI)
+│   ├── generate_ner_dataset.py    — génération via Ollama depuis corpus SFT existant
 │   ├── generate_ner_synthetic.py  — génération synthétique (entités sous-représentées)
 │   ├── prepare_spacy_dataset.py   — conversion JSONL → train.spacy / dev.spacy
 │   └── train_anonyner.py          — entraînement spaCy + sauvegarde modèle
+├── logs/
+│   ├── linux/                     ← déposer les logs Linux ici
+│   ├── apache/                    ← déposer les logs Apache ici
+│   └── windows/                   ← déposer les logs Windows ici
 ├── data/
 │   ├── anonyner_train.jsonl        — corpus principal (1018 exemples)
 │   ├── anonyner_combined_v2.jsonl  — corpus combiné v2 (1997 exemples)
@@ -72,6 +117,55 @@ directement utilisables par spaCy.
 | `PORT_NUMBER` | Numéros de port |
 | `VPN_USER` | Identifiants utilisateur VPN |
 | `IP_SUBNET` | Sous-réseaux CIDR |
+
+---
+
+## Circuit 2 — Annoter un nouveau corpus
+
+### Déposer les logs
+
+```bash
+cp /path/to/Linux_2k.log training/logs/linux/
+```
+
+### Lancer l'annotation
+
+```bash
+python training/scripts/annotate_corpus.py \
+    --source linux \
+    --model qwen2.5-coder:7b \
+    --sample 500 \
+    --threshold 0.80
+```
+
+Résultat :
+- `training/data/linux_annotated.jsonl` — annotations à confiance ≥ 0.80 (auto-accept)
+- `training/data/linux_review.jsonl` — annotations à confiance < 0.80 (à réviser)
+- `training/data/linux_annotation_report.json` — statistiques
+
+### Réviser les annotations douteuses
+
+```bash
+python training/scripts/review_corpus.py --source linux
+```
+
+Interface CLI ligne par ligne :
+- `a` / Entrée → accepter
+- `e` → éditer le label
+- `d` → supprimer une entité
+- `s` → ignorer
+- `q` → quitter (progression sauvegardée, reprise possible)
+
+### Compiler et entraîner
+
+```bash
+python training/scripts/prepare_spacy_dataset.py \
+    --input training/data/linux_annotated.jsonl \
+    --train-out training/data/train.spacy \
+    --dev-out training/data/dev.spacy
+
+python training/scripts/train_anonyner.py
+```
 
 ---
 
