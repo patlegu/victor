@@ -312,6 +312,50 @@ Ajouter des règles manuellement dans le JSON ou via `RuleWriter.add()`.
 
 ---
 
+## Résultats sur logs réels
+
+Tests réalisés sur des jeux de logs publics issus du projet [LogHub](https://github.com/logpai/loghub).
+
+| Log source | Fichier | Taille | Remplacements | Tokens | Status | Gaps résiduels |
+|------------|---------|--------|---------------|--------|--------|----------------|
+| Linux syslog | `Linux_2k.log` | 211 KB | 3 287 | 1 676 | partial | 1 |
+
+**Interprétation des statuts :**
+- `clean` — zéro gap résiduel, anonymisation complète
+- `partial` — gaps résiduels détectés, relecture recommandée
+- `error` — fichier non traitable (encodage inconnu, binaire…)
+
+### Analyse qualitative du mapping
+
+L'examen du `batch_mapping.json` révèle des résultats mitigés sur ce format de log :
+
+| Entrée capturée | Token attribué | Verdict |
+|-----------------|----------------|---------|
+| `sshd(pam_unix)[19937]:` | `{{IFACE_001}}` | ❌ Process+PID → classifié Interface |
+| `sshd(pam_unix)[20882` | `{{SVC_ACCOUNT_001}}` | ⚠️ Process+PID → Service Account (approximatif) |
+| `14:53:32` | `{{IP_001}}` | ❌ Timestamp → classifié IP |
+| `12:13:20` | `{{FW_RULE_002}}` | ❌ Timestamp → classifié Firewall Rule |
+| `]:` | `{{MAC_001}}` | ❌ Ponctuation → classifié MAC |
+| `=` | `{{VPN_USER_001}}` | ❌ Signe égal → classifié VPN User |
+| `uid=0` | `{{PORT_001}}` | ❌ UID root → classifié Port |
+| `1` | `{{FW_RULE_001}}` | ❌ Entier → classifié Firewall Rule |
+| `rhost=220-135-151-1.hinet-ip.hinet.net` | `{{HOST_001}}` | ⚠️ Correct mais inclut le préfixe `rhost=` |
+
+**Diagnostic :** AnonyNER a été entraîné principalement sur des logs réseau et firewall
+(OPNsense, CrowdSec, WireGuard). Les Linux syslogs ont un format structuré différent —
+`process(subsystem)[pid]:` — que le modèle ne reconnaît pas nativement. Il projette
+les labels familiers (IP, MAC, IFACE) sur des fragments syntaxiques similaires en surface,
+produisant de nombreux faux positifs.
+
+**Ce que ce test démontre :**
+- Les custom rules (regex RFC1918, CVE, FQDN…) fonctionnent indépendamment du modèle NER
+- Le modèle AnonyNER v3 est spécialisé logs réseau/firewall — les logs applicatifs Linux
+  nécessitent un enrichissement du corpus d'entraînement
+- Le `batch_report.json` + `batch_mapping.json` permettent d'identifier précisément
+  les zones à corriger avant d'utiliser les fichiers anonymisés
+
+---
+
 ## Limitations connues
 
 **Tokens statiques pour les custom rules** — plusieurs IPs ou hostnames distincts
