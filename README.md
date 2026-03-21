@@ -326,6 +326,36 @@ Les deux circuits alimentent le même pipeline d'entraînement spaCy.
 
 ---
 
+## Formats de logs supportés
+
+Suivi de la couverture AnonyNER par format de log. Le statut reflète la qualité
+de la détection NER, indépendamment des règles regex (toujours actives).
+
+| Format | Source | Statut | Circuit | Notes |
+|--------|--------|--------|---------|-------|
+| OPNsense firewall | Réseau | ✅ Bon | 1 | Corpus d'entraînement v3 |
+| WireGuard | VPN | ✅ Bon | 1 | Corpus d'entraînement v3 |
+| CrowdSec | IDS/IPS | ✅ Bon | 1 | Corpus d'entraînement v3 |
+| Linux syslog | Système | ⚠️ Partiel | 2 | Faux positifs sur PID, timestamps — corpus à construire |
+| Apache / Nginx | Web | 🔲 Non testé | 2 | |
+| Windows Event Log | Système | 🔲 Non testé | 2 | |
+| Fortinet / FortiGate | Réseau | 🔲 Non testé | 2 | |
+| Stormshield | Réseau | 🔲 Non testé | 2 | |
+| Journald (systemd) | Système | 🔲 Non testé | 2 | |
+| Auditd | Système | 🔲 Non testé | 2 | |
+| Syslog-ng / rsyslog | Agrégateur | 🔲 Non testé | 2 | |
+| Kubernetes / containerd | Cloud | 🔲 Non testé | 2 | |
+
+**Légende :**
+- ✅ Bon — détection fiable, peu de faux positifs
+- ⚠️ Partiel — détection dégradée, corpus circuit 2 recommandé
+- 🔲 Non testé — contribution bienvenue (`training/logs/<source>/`)
+
+Pour contribuer un nouveau format : déposer des logs bruts dans `training/logs/<source>/`
+et lancer `annotate_corpus.py` (voir [training/README.md](training/README.md)).
+
+---
+
 ## Règles custom
 
 Les règles pré-définies dans `victor/config/custom_rules_security.json` couvrent :
