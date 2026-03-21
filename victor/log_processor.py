@@ -19,6 +19,12 @@ Sorties par batch (outbox/batch_YYYYMMDD_HHMMSS/) :
   ├── partial/             — fichiers .anon avec gaps résiduels
   └── error/               — fichiers d'erreur (.error.txt)
 
+Archivage des originaux :
+  Si archive_dir est fourni, les fichiers sources sont copiés dans
+  archive_dir/ après traitement au lieu d'être supprimés (move_inbox=True)
+  ou laissés en place (move_inbox=False).
+  Structure : archive_dir/<batch_id>/<nom_du_fichier_original>
+
 Formats supportés :
   Tout fichier lisible en texte (UTF-8 / latin-1 fallback).
   Les fichiers binaires non décodables sont routés vers error/.
@@ -39,6 +45,7 @@ Usage :
 
 import json
 import logging
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -68,6 +75,7 @@ class LogProcessor:
         anonymizer=None,
         gap_collector=None,
         move_inbox: bool = True,
+        archive_dir: Optional[Path] = None,
     ):
         """
         :param inbox_dir:     Répertoire source — fichiers à anonymiser.
@@ -78,10 +86,14 @@ class LogProcessor:
         :param move_inbox:    Si True, les fichiers traités avec succès sont
                               supprimés de inbox/ après traitement.
                               Si False, ils sont laissés en place (mode dry-run).
+        :param archive_dir:   Si fourni, les originaux sont copiés dans
+                              archive_dir/<batch_id>/ avant suppression.
+                              Ignoré si move_inbox=False.
         """
-        self.inbox_dir    = Path(inbox_dir)
-        self.outbox_dir   = Path(outbox_dir)
-        self.move_inbox   = move_inbox
+        self.inbox_dir      = Path(inbox_dir)
+        self.outbox_dir     = Path(outbox_dir)
+        self.move_inbox     = move_inbox
+        self.archive_dir    = Path(archive_dir) if archive_dir else None
         self._gap_collector = gap_collector
 
         if anonymizer is not None:
@@ -255,8 +267,17 @@ class LogProcessor:
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(anonymized_text)
 
-        # Suppression de l'original si move_inbox activé
+        # Archivage + suppression de l'original si move_inbox activé
         if self.move_inbox:
+            if self.archive_dir is not None:
+                archive_batch_dir = self.archive_dir / batch_dir.name
+                archive_batch_dir.mkdir(parents=True, exist_ok=True)
+                try:
+                    shutil.copy2(file_path, archive_batch_dir / file_path.name)
+                except Exception as e:
+                    logger.warning(
+                        "LogProcessor : impossible d'archiver %s : %s", file_path, e
+                    )
             try:
                 file_path.unlink()
             except Exception as e:

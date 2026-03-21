@@ -14,8 +14,10 @@ data/dataset/train.spacy
 # Logs — contenu sensible, jamais versionné
 logs/inbox/*
 logs/outbox/*
+logs/archive/*
 !logs/inbox/.gitkeep
 !logs/outbox/.gitkeep
+!logs/archive/.gitkeep
 
 # Modèles spaCy locaux
 models/

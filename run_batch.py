@@ -31,6 +31,7 @@ processor = LogProcessor(
     inbox_dir     = Path("logs/inbox"),
     outbox_dir    = Path("logs/outbox"),
     gap_collector = collector,
+    archive_dir   = Path("logs/archive"),
 )
 
 report = processor.process_batch()
