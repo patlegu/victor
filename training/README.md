@@ -99,18 +99,26 @@ training/
 │   ├── labels.py                  — source unique des 30 labels NER (à modifier ici uniquement)
 │   ├── annotate_corpus.py         — Circuit 2 : annotation logs bruts via Ollama
 │   ├── review_corpus.py           — Circuit 2 : revue humaine (CLI)
+│   ├── clean_corpus.py            — nettoyage JSONL : labels invalides, doublons, cohérence
 │   ├── generate_ner_dataset.py    — génération via Ollama depuis corpus SFT existant
-│   ├── generate_ner_synthetic.py  — génération synthétique (entités sous-représentées)
+│   ├── generate_ner_synthetic.py  — génération synthétique via Ollama (entités sous-représentées)
+│   ├── generate_rare_labels.py    — génération déterministe pour labels rares (sans LLM)
+│   ├── extract_ctu13_flows.py     — convertit binetflow CTU-13 → logs lisibles (IP, PORT, PROTOCOL)
+│   ├── extract_kerneldriver.py    — convertit syscalls Windows KernelDriver.7z → logs (PROCESS_NAME, FILE_PATH)
+│   ├── extract_otrf_windows.py    — extrait événements OTRF Security Datasets → logs préfixés [EventID:N]
 │   ├── prepare_spacy_dataset.py   — conversion JSONL → data/ner/train.spacy / dev.spacy
 │   └── train_anonyner.py          — fine-tuning spaCy depuis en_anonyner + sauvegarde
 ├── logs/
 │   ├── linux/                     ← déposer les logs Linux ici
 │   ├── apache/                    ← déposer les logs Apache ici
-│   └── windows/                   ← déposer les logs Windows ici
+│   ├── windows/                   ← déposer les logs Windows ici
+│   ├── ctu13/                     ← flows binetflow CTU-13 (Stratosphere IPS)
+│   └── malware/                   ← syscalls extraits de KernelDriver.7z
 ├── data/
 │   ├── <source>_annotated.jsonl   — annotations auto-acceptées par source
 │   ├── <source>_review.jsonl      — annotations à réviser manuellement
 │   ├── <source>_annotation_report.json — statistiques d'annotation
+│   ├── corpus_vX.jsonl            — corpus fusionné par version (corpus_v312_full.jsonl = actuel)
 │   └── ner/
 │       ├── config.cfg             — configuration spaCy (générée automatiquement)
 │       ├── train.spacy            — dataset d'entraînement compilé
@@ -119,6 +127,159 @@ training/
     └── anonyner_model/
         ├── model-best/            ← modèle à utiliser en production
         └── model-last/
+```
+
+---
+
+## Inventaire des scripts
+
+### `labels.py` — Source unique des labels
+
+Dictionnaire `LABEL_DEFINITIONS` avec pour chaque label : groupe, description, exemples.
+Importé par `annotate_corpus.py`, `review_corpus.py`, `clean_corpus.py`.
+**Ne jamais définir les labels ailleurs.**
+
+### `annotate_corpus.py` — Annotation via LLM (Circuit 2)
+
+Envoie chaque ligne de log à un LLM Ollama pour extraction NER avec score de confiance.
+Route automatiquement : confiance ≥ seuil → `_annotated.jsonl`, sinon → `_review.jsonl`.
+
+```bash
+python training/scripts/annotate_corpus.py \
+    --source linux --model qwen2.5-coder:7b --sample 500 --threshold 0.80
+# ou fichier direct :
+python training/scripts/annotate_corpus.py \
+    --input training/logs/linux/auth.log --source linux
+```
+
+### `review_corpus.py` — Revue humaine (CLI)
+
+Interface CLI pour valider les annotations à confiance insuffisante (`_review.jsonl`).
+Commandes : `a`/Entrée=accepter, `e`=éditer label, `d`=supprimer entité, `s`=ignorer, `q`=quitter.
+Progression sauvegardée automatiquement.
+
+```bash
+python training/scripts/review_corpus.py --source linux
+```
+
+### `clean_corpus.py` — Nettoyage et déduplication
+
+Filtre les entités hors `VALID_LABELS_SET`, recalcule `spacy_format`, supprime les doublons sur `text`.
+Affiche un rapport des labels supprimés et des enregistrements perdus.
+
+```bash
+python training/scripts/clean_corpus.py \
+    --inputs data/a.jsonl data/b.jsonl --output data/corpus_clean.jsonl
+# Ou en place :
+python training/scripts/clean_corpus.py --inputs data/old.jsonl --inplace
+```
+
+### `generate_ner_dataset.py` — Génération LLM depuis SFT
+
+Génère des exemples annotés via Ollama à partir de templates de logs existants dans le corpus SFT.
+Nécessite Ollama + modèle compatible (qwen2.5-coder:7b ou supérieur).
+
+```bash
+python training/scripts/generate_ner_dataset.py --model qwen2.5-coder:7b --count 100
+```
+
+### `generate_ner_synthetic.py` — Génération LLM entités rares
+
+Génère des exemples synthétiques via Ollama pour des types d'entités spécifiques (CVE, MAC_ADDRESS…).
+Similaire à `generate_ner_dataset.py` mais orienté sur les labels sous-représentés.
+
+```bash
+python training/scripts/generate_ner_synthetic.py \
+    --output training/data/anonyner_synthetic_new.jsonl
+```
+
+### `generate_rare_labels.py` — Génération déterministe (sans LLM)
+
+Génère directement des JSONL annotés pour les labels très rares, sans LLM.
+Annotation par templates + `str.find()` — 100% fiable, pas de biais de confiance.
+Labels ciblés : `ACTION`, `WIN_GROUP`, `UNIX_GROUP`, `SCHEDULED_TASK`, `ASN`, `FILE_HASH`.
+
+```bash
+python training/scripts/generate_rare_labels.py \
+    --output training/data/synthetic_rare_labels.jsonl
+```
+
+### `extract_ctu13_flows.py` — Convertisseur CTU-13
+
+Convertit les fichiers binetflow CSV du [dataset CTU-13](https://www.stratosphereips.org/datasets-ctu13)
+en lignes de logs texte annotables. Expose : `IP_ADDRESS`, `PORT_NUMBER`, `PROTOCOL`.
+
+Format entrée : `SrcAddr,DstAddr,Proto,Sport,Dport,State,...,Label`
+Format sortie : `flow: 147.32.84.59:1577 -> 62.107.124.67:6881 proto=TCP state=CON pkts=6 bytes=396`
+
+```bash
+python training/scripts/extract_ctu13_flows.py \
+    --input /tmp/ctu13_sample.csv \
+    --output training/logs/ctu13/ctu13_flows.log --max-lines 5000
+```
+
+### `extract_kerneldriver.py` — Convertisseur KernelDriver (Zenodo 1203289)
+
+Extrait les appels système Windows depuis l'archive [Dynamic Malware Analysis](https://zenodo.org/records/1203289).
+Structure : `ProcessId/ProcessIdVirusShare500/<sample_id>/<syscall>.txt` — format `Time=,Pid=,MethodName=,ProcessName=`.
+Expose : `PROCESS_NAME`, `FILE_PATH`, `PID`. Filtre sur les syscalls `Zw*` pertinents.
+
+Nécessite `py7zr` pour inspecter l'archive, extraction préalable requise pour l'exécution.
+
+```bash
+# Après extraction de KernelDriver.7z :
+python training/scripts/extract_kerneldriver.py \
+    --input /tmp/KernelDriver --output training/logs/malware/kerneldriver.log --max-lines 5000
+```
+
+### `extract_otrf_windows.py` — Convertisseur OTRF Security Datasets
+
+Extrait les événements Windows depuis les fichiers JSON [OTRF Security Datasets](https://github.com/OTRF/Security-Datasets).
+Préfixe `[EventID:N] [Host:H]` au champ `Message` pour que `annotate_corpus.py` puisse extraire `EVENT_ID` et `WIN_HOST`.
+Filtre les EventIDs bruités (Sysmon 7, 12, 13…).
+
+```bash
+python training/scripts/extract_otrf_windows.py \
+    --input /tmp/Security-Datasets/datasets/atomic/windows \
+    --output training/logs/windows/otrf_enriched.log --max-lines 10000
+```
+
+### `prepare_spacy_dataset.py` — Compilation JSONL → .spacy
+
+Convertit un ou plusieurs fichiers JSONL annotés au format binaire spaCy.
+Utilise le tokeniseur de `en_anonyner` pour assurer la cohérence des offsets.
+Split configurable (défaut 80/20).
+
+```bash
+python training/scripts/prepare_spacy_dataset.py \
+    --input training/data/corpus_v312_full.jsonl \
+    --train-out training/data/ner/train.spacy \
+    --dev-out training/data/ner/dev.spacy \
+    --split 0.2
+```
+
+### `train_anonyner.py` — Fine-tuning spaCy (tok2vec ou transformer)
+
+Génère `config.cfg` si absent et lance l'entraînement. Deux modes :
+
+**Mode tok2vec** (défaut) — fine-tuning depuis `en_anonyner`, rapide (~45 min GPU), ~88% F1.
+Injecte `source = "en_anonyner"` dans `tok2vec` et `ner`. Requiert CuPy pour le GPU.
+
+**Mode transformer** — RoBERTa-base (ou autre HuggingFace), 5-10× plus lent, ~90%+ F1.
+Entraînement depuis zéro avec backbone pré-entraîné. Requiert PyTorch + `spacy-transformers`.
+
+```bash
+# Mode tok2vec (défaut)
+python training/scripts/train_anonyner.py
+
+# Mode transformer RoBERTa-base
+python training/scripts/train_anonyner.py --transformer
+
+# Autre modèle HuggingFace
+python training/scripts/train_anonyner.py --transformer --transformer-model distilbert-base-uncased
+
+# Régénérer la config (si changement de mode)
+python training/scripts/train_anonyner.py --transformer --force-regen-config
 ```
 
 ---
@@ -283,11 +444,47 @@ Le script :
 1. Génère `data/ner/config.cfg` si absent (optimisé CPU/efficiency)
 2. Injecte `source = "en_anonyner"` dans les sections `[components.tok2vec]` et
    `[components.ner]` — fine-tuning au lieu d'un réentraînement de zéro
-3. Lance `spacy train` avec `data/ner/train.spacy` et `data/ner/dev.spacy`
-4. Sauvegarde `model-best` et `model-last` dans `models/anonyner_model/`
+3. Détecte le GPU via CuPy et passe `LD_LIBRARY_PATH` au subprocess si disponible
+4. Lance `spacy train` avec `data/ner/train.spacy` et `data/ner/dev.spacy`
+5. Sauvegarde `model-best` et `model-last` dans `models/anonyner_model/`
 
 > **Note :** Si la config existe déjà d'un run précédent, la supprimer avant de relancer :
 > `rm training/data/ner/config.cfg`
+
+#### Comprendre l'affichage pendant l'entraînement
+
+```
+E    #       LOSS TOK2VEC  LOSS NER  ENTS_F  ENTS_P  ENTS_R  SCORE
+---  ------  ------------  --------  ------  ------  ------  ------
+  0       0          7.92     21.27    5.59    4.43    7.56    0.06
+  0     200       2346.72   1567.78   68.81   71.84   66.02    0.69
+  1    2000       1303.84   3294.82   86.84   85.90   87.79    0.87
+```
+
+| Colonne | Signification |
+|---|---|
+| `E` | Numéro d'époque (passage complet sur le dataset d'entraînement) |
+| `#` | Numéro de step (batch) depuis le début |
+| `LOSS TOK2VEC` | Perte du composant de représentation contextuelle (tok2vec). Doit diminuer en début d'entraînement. |
+| `LOSS NER` | Perte du composant NER. Doit diminuer globalement, des remontées ponctuelles sont normales. |
+| `ENTS_F` | **F1-score sur le dev set** — métrique principale. Sauvegardé dans `model-best` à chaque nouveau maximum. |
+| `ENTS_P` | Précision sur le dev set — ratio entités prédites correctes / total prédit |
+| `ENTS_R` | Rappel sur le dev set — ratio entités correctes trouvées / total attendu. **Métrique critique pour l'anonymisation** (une entité manquée = fuite de donnée). |
+| `SCORE` | Score composite spaCy (= `ENTS_F` pour un pipeline NER pur) |
+
+#### Comportements attendus
+
+**Début (epoch 0, steps 0–400)** : forte descente de la loss, F1 progresse vite de ~5% à ~75%. Normal — le modèle s'aligne sur le nouveau corpus depuis `en_anonyner`.
+
+**Milieu (epochs 1–4)** : convergence progressive vers 85–90% F1. Les pertes augmentent en valeur absolue (plus d'examples vus par step) mais le score dev continue de monter. Des oscillations de ±2% F1 entre steps sont normales.
+
+**Fin (early stopping)** : spaCy arrête automatiquement si le score dev ne s'améliore pas pendant N steps consécutifs (`patience` dans `config.cfg`, défaut 1600). Le meilleur modèle (`model-best`) est celui du step avec le SCORE maximal observé — pas forcément le dernier.
+
+**Signaux d'alerte :**
+- F1 plafonne sous 70% dès l'epoch 0 → problème de corpus (chevauchements, labels corrompus) — relancer `clean_corpus.py`
+- `ENTS_P` ≫ `ENTS_R` (ex. P=95%, R=60%) → le modèle est trop conservateur, corpus trop petit ou entités rares absentes
+- `ENTS_R` ≫ `ENTS_P` (ex. R=95%, P=60%) → sur-annotation dans les données d'entraînement, labels ambigus
+- Loss NER qui monte indéfiniment sans que F1 progresse → learning rate trop élevé ou corpus mal aligné
 
 ### Étape 4 — Tester le modèle entraîné
 

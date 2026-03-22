@@ -14,3 +14,15 @@ spacy>=3.7.0
 # Dépendances de développement
 # pytest>=8.0
 # pytest-cov
+
+# ── Entraînement AnonyNER (training/ uniquement) ──────────────────────────────
+# GPU tok2vec (requis par thinc pour spacy train --gpu-id)
+# Note : cupy-cuda12x==14.x incompatible avec thinc 8.3.x (bridge DLPack cassé)
+# pip install cupy-cuda12x==13.3.0
+#
+# GPU transformer (roberta-base ou autre HuggingFace)
+# pip install torch --index-url https://download.pytorch.org/whl/cu121
+# pip install spacy-transformers>=1.4.0
+#
+# Lecture archives .7z (dataset KernelDriver)
+# pip install py7zr
