@@ -1,9 +1,6 @@
 # Victor
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
-[![Defense Restrictions](https://img.shields.io/badge/Restriction-Defense%20Sector-red.svg)](#licence)
-
-> **Note importante :** Ce logiciel est distribué sous licence **AGPL-3.0**. Son utilisation au sein du secteur de la **défense et de l'armement**, ou par des entités exigeant la confidentialité du code source, nécessite une licence commerciale dérogatoire. Voir la section [Licence](#licence) pour plus de détails.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -472,18 +469,4 @@ fonctionnent dans les deux cas.
 
 ## Licence
 
-Ce logiciel est distribué sous la licence **GNU Affero General Public License v3.0 (AGPL-3.0)**. 
-
-### Pourquoi l'AGPL-3.0 ?
-L'AGPL-3.0 est une licence de "copyleft" fort conçue pour garantir que le code source de toutes les versions modifiées du logiciel soit mis à la disposition de la communauté, même si le logiciel est utilisé uniquement via un réseau (SaaS/Cloud). 
-
-### Utilisation Commerciale et Restrictions
-Les entreprises dont les politiques internes interdisent l'utilisation de licences AGPL-3.0 (notamment pour des raisons de confidentialité ou de secret industriel) doivent acquérir une **licence commerciale dérogatoire**.
-
-Le détenteur des droits se réserve le droit de refuser la vente d'une licence commerciale à toute entité dont les activités ne sont pas en adéquation avec les valeurs du projet (notamment les secteurs de la défense et de l'armement).
-
-### Demandes de dérogation
-Pour toute demande de licence commerciale dérogatoire ou pour discuter d'un cas d'usage spécifique (secteurs régulés, défense, infrastructure critique), 
-👉 [**Ouvrir une demande de licence dérogatoire**](https://github.com/patlegu/victor/issues/new?title=[Licensing+Request]+Nom+de+votre+entité&labels=%E2%9A%96%EF%B8%8F+Licensing+Request&body=Organisation+:+%0ASecteur+:+%0ACas+d'usage+:+%0ARaison+de+la+dérogation+:+)
-
-*Note : Les demandes anonymes ou incomplètes ne seront pas traitées.*
+Ce projet est distribué sous la licence **MIT**. Voir le fichier [LICENSE](LICENSE) pour les détails.
