@@ -19,7 +19,8 @@ python -m venv venv && source venv/bin/activate
 pip install -e .
 
 # Modèle AnonyNER (recommandé — entités cyber)
-pip install https://github.com/patlegu/anonyfiles/releases/download/anonyner-v3.0.0/en_anonyner-3.0.0.tar.gz
+# Voir les releases pour la dernière version disponible
+pip install https://github.com/patlegu/victor/releases/latest/download/en_anonyner-latest.tar.gz
 
 # Modèle générique (fallback sans entités cyber)
 # python -m spacy download en_core_web_md
@@ -265,18 +266,28 @@ data/
 ├── reviewed/    — exports de review (usage libre)
 └── dataset/     — annotations.json + train.spacy (piste longue)
 
-training/               — pipeline d'entraînement AnonyNER (non versionné)
+training/               — pipeline d'entraînement AnonyNER (versionné sur GitLab)
 ├── logs/               — logs bruts par source (circuit 2)
 │   ├── linux/
 │   ├── apache/
 │   └── windows/
 ├── scripts/
-│   ├── annotate_corpus.py    — circuit 2 : annotation logs bruts + score confiance
-│   ├── review_corpus.py      — circuit 2 : revue humaine CLI
-│   ├── prepare_spacy_dataset.py
-│   └── train_anonyner.py
-├── data/               — corpus annotés + compilés
-└── models/             — modèles entraînés
+│   ├── annotate_corpus.py             — circuit 2 : annotation + score confiance
+│   ├── review_corpus.py               — circuit 2 : revue humaine CLI
+│   ├── eval_anonyner.py               — évaluation par label (P/R/F1/FN)
+│   ├── analyze_fn.py                  — diagnostic faux négatifs par label
+│   ├── prepare_spacy_dataset.py       — JSONL → train.spacy / dev.spacy
+│   ├── train_anonyner.py              — entraînement tok2vec ou transformer
+│   ├── diversify_hostname_corpus.py   — correction mislabels EC2 HOSTNAME
+│   ├── relabel_key_fingerprint.py     — FILE_HASH → KEY_FINGERPRINT
+│   ├── generate_hostname_contexts.py  — données synthétiques HOSTNAME
+│   ├── generate_command_line_contexts.py
+│   ├── generate_url_uri_contexts.py
+│   ├── generate_scheduled_task_contexts.py
+│   ├── generate_key_fingerprint_contexts.py
+│   └── generate_file_hash_contexts.py
+├── data/               — corpus annotés + compilés (v3.0 → v3.20)
+└── models/             — modèles entraînés (non versionnés)
 ```
 
 ### Flux d'anonymisation
@@ -328,20 +339,21 @@ Les deux circuits alimentent le même pipeline d'entraînement spaCy.
 Suivi de la couverture AnonyNER par format de log. Le statut reflète la qualité
 de la détection NER, indépendamment des règles regex (toujours actives).
 
-| Format | Source | Statut | Circuit | Notes |
-|--------|--------|--------|---------|-------|
-| OPNsense firewall | Réseau | ✅ Bon | 1 | Corpus d'entraînement v3 |
-| WireGuard | VPN | ✅ Bon | 1 | Corpus d'entraînement v3 |
-| CrowdSec | IDS/IPS | ✅ Bon | 1 | Corpus d'entraînement v3 |
-| Linux syslog | Système | ⚠️ Partiel | 2 | Faux positifs sur PID, timestamps — corpus à construire |
-| Apache / Nginx | Web | 🔲 Non testé | 2 | |
-| Windows Event Log | Système | 🔲 Non testé | 2 | |
-| Fortinet / FortiGate | Réseau | 🔲 Non testé | 2 | |
-| Stormshield | Réseau | 🔲 Non testé | 2 | |
-| Journald (systemd) | Système | 🔲 Non testé | 2 | |
-| Auditd | Système | 🔲 Non testé | 2 | |
-| Syslog-ng / rsyslog | Agrégateur | 🔲 Non testé | 2 | |
-| Kubernetes / containerd | Cloud | 🔲 Non testé | 2 | |
+| Format | Source | Statut | Notes |
+|--------|--------|--------|-------|
+| OPNsense firewall | Réseau | ✅ Bon | Corpus multi-versions depuis v3.0 |
+| WireGuard | VPN | ✅ Bon | Corpus multi-versions depuis v3.0 |
+| CrowdSec | IDS/IPS | ✅ Bon | Corpus multi-versions depuis v3.0 |
+| Linux syslog / auth.log | Système | ✅ Bon | Corpus CTU-13 + OpenSSH + Linux_2k (v3.11+) |
+| Apache / Nginx access | Web | ✅ Bon | Corpus Apache Combined Log + Logstash (v3.16+) |
+| Windows Event Log | Système | ✅ Bon | Corpus OTRF Windows + EventID (v3.11+) |
+| Sysmon | Endpoint | ⚠️ Partiel | Hashes et chemins couverts, enrichissement en cours |
+| Squid / HAProxy / WAF | Proxy | ⚠️ Partiel | Couverture URL_URI — corpus limité |
+| Fortinet / FortiGate | Réseau | 🔲 Non testé | Contribution bienvenue |
+| Stormshield | Réseau | 🔲 Non testé | Contribution bienvenue |
+| Journald (systemd) | Système | 🔲 Non testé | Contribution bienvenue |
+| Auditd | Système | 🔲 Non testé | Contribution bienvenue |
+| Kubernetes / containerd | Cloud | 🔲 Non testé | Contribution bienvenue |
 
 **Légende :**
 - ✅ Bon — détection fiable, peu de faux positifs
@@ -355,38 +367,52 @@ et lancer `annotate_corpus.py` (voir [training/README.md](training/README.md)).
 
 ## Labels NER
 
+30 labels couvrant les entités sensibles des logs réseau, système et sécurité. F1 global **96%** (corpus v3.20, modèle RoBERTa).
+
 **Réseau / Firewall**
 
-| Label | Entités détectées |
-|-------|-------------------|
-| `IP_ADDRESS` | Adresses IPv4 et IPv6 |
-| `IP_SUBNET` | Sous-réseaux CIDR (`10.0.0.0/8`…) |
-| `HOSTNAME` | Hostnames et FQDNs internes |
-| `INTERFACE` | Interfaces réseau (`eth0`, `wg0`, `en0`…) |
-| `MAC_ADDRESS` | Adresses MAC (`aa:bb:cc:dd:ee:ff`) |
-| `PORT_NUMBER` | Numéros de port |
-| `CVE` | Identifiants CVE (`CVE-YYYY-NNNNN`) |
-| `SERVICE_ACCOUNT` | Comptes de service infra (`crowdsec-agent`, `wireguard_peer`…) |
-| `FIREWALL_RULE` | Règles et noms de politiques firewall |
-| `VPN_USER` | Identifiants utilisateur VPN |
+| Label | Entités détectées | F1 |
+|-------|-------------------|----|
+| `IP_ADDRESS` | Adresses IPv4 et IPv6 | 99.3% |
+| `IP_SUBNET` | Sous-réseaux CIDR (`10.0.0.0/8`…) | 93.3% |
+| `HOSTNAME` | Hostnames et FQDNs internes | 99.0% |
+| `DOMAIN` | Domaines publics (`example.com`, `github.com`) | 96.6% |
+| `INTERFACE` | Interfaces réseau (`eth0`, `wg0`, `en0`…) | 92.4% |
+| `MAC_ADDRESS` | Adresses MAC (`aa:bb:cc:dd:ee:ff`) | 76.5% |
+| `PORT_NUMBER` | Numéros de port | 91.6% |
+| `PROTOCOL` | Protocoles réseau (`TCP`, `UDP`, `ICMP`, `BGP`…) | 85.8% |
+| `ASN` | Numéros de système autonome (`AS12345`) | 100% |
+| `CVE` | Identifiants CVE (`CVE-YYYY-NNNNN`) | 97.9% |
+| `URL_URI` | URLs et URIs dans les logs web/proxy | 86.6% |
+| `SERVICE_ACCOUNT` | Comptes de service infra (`crowdsec-agent`, `wireguard_peer`…) | 89.1% |
+| `FIREWALL_RULE` | Règles et noms de politiques firewall | 82.9% |
+| `VPN_USER` | Identifiants utilisateur VPN | 90.5% |
 
 **Linux / Unix**
 
-| Label | Entités détectées |
-|-------|-------------------|
-| `UNIX_USER` | Utilisateurs OS locaux (`root`, `www-data`, `oracle`, `postgres`…) |
-| `PROCESS_NAME` | Processus et daemons (`sshd`, `ftpd`, `cron`, `kernel`, `sudo`…) |
-| `FILE_PATH` | Chemins filesystem (`/etc/passwd`, `/var/log/`, `/home/user/`…) |
+| Label | Entités détectées | F1 |
+|-------|-------------------|----|
+| `UNIX_USER` | Utilisateurs OS locaux (`root`, `www-data`, `oracle`…) | 98.9% |
+| `UNIX_GROUP` | Groupes OS (`wheel`, `docker`, `sudo`…) | 100% |
+| `PROCESS_NAME` | Processus et daemons (`sshd`, `cron`, `sudo`…) | 97.8% |
+| `COMMAND_LINE` | Lignes de commande complètes (Unix et Windows) | 87.5% |
+| `FILE_PATH` | Chemins filesystem (`/etc/passwd`, `C:\Windows\…`) | 91.5% |
+| `FILE_HASH` | Checksums de fichiers (`md5:…`, `SHA256:…`, hex brut) | — |
+| `KEY_FINGERPRINT` | Empreintes de clés SSH (`RSA SHA256:…`, `ED25519 SHA256:…`) | 93.9% |
+| `PID` | Identifiants de processus | 90.0% |
 
 **Windows**
 
-| Label | Entités détectées |
-|-------|-------------------|
-| `WIN_USER` | Comptes Windows (`DOMAIN\user`, `user@corp.local`, `Administrator`) |
-| `WIN_SID` | Security Identifiers (`S-1-5-21-…`) |
-| `WIN_HOST` | Noms de machines Windows (`DESKTOP-AB12CD`, `COMPUTER01$`) |
-| `WIN_SERVICE` | Services et processus Windows (`lsass.exe`, `winlogon.exe`, `SYSTEM`) |
-| `REGISTRY_KEY` | Clés de registre (`HKLM\SOFTWARE\…`, `HKCU\…`) |
+| Label | Entités détectées | F1 |
+|-------|-------------------|----|
+| `WIN_USER` | Comptes Windows (`DOMAIN\user`, `Administrator`) | 99.1% |
+| `WIN_SID` | Security Identifiers (`S-1-5-21-…`) | 93.6% |
+| `WIN_HOST` | Noms de machines Windows (`DESKTOP-AB12CD`, `COMPUTER01$`) | 83.9% |
+| `WIN_GROUP` | Groupes Windows (`Domain Admins`, `Administrators`) | 100% |
+| `REGISTRY_KEY` | Clés de registre (`HKLM\SOFTWARE\…`, `HKCU\…`) | 99.7% |
+| `EVENT_ID` | Identifiants d'événements Windows (`4698`, `7045`…) | 87.5% |
+| `SCHEDULED_TASK` | Tâches planifiées (`\Microsoft\Windows\…`, `schtasks /tn`) | 97.2% |
+| `ACTION` | Actions firewall/IDS (`BLOCK`, `ALLOW`, `DROP`…) | 94.7% |
 
 ---
 
@@ -412,47 +438,26 @@ Ajouter des règles manuellement dans le JSON ou via `RuleWriter.add()`.
 
 ---
 
-## Résultats sur logs réels
+## Résultats AnonyNER
 
-Tests réalisés sur des jeux de logs publics issus du projet [LogHub](https://github.com/logpai/loghub).
+Évaluation sur corpus de dev (20% du corpus d'entraînement, ~5 000 documents). Sources : LogHub, CTU-13, OTRF Windows, Apache Elastic, logs synthétiques multi-formats.
 
-| Log source | Fichier | Taille | Remplacements | Tokens | Status | Gaps résiduels |
-|------------|---------|--------|---------------|--------|--------|----------------|
-| Linux syslog | `Linux_2k.log` | 211 KB | 3 287 | 1 676 | partial | 1 |
+| Métrique | v3.0 (tok2vec) | v3.11 | v3.16 (RoBERTa) | v3.20 (actuel) |
+|----------|---------------|-------|-----------------|----------------|
+| F1 global | 82.4% | 88.0% | 95.9% | **96%** |
+| Corpus | ~3 000 | ~16 000 | ~22 000 | ~25 000 |
+| Labels | 20 | 25 | 27 | **30** |
 
-**Interprétation des statuts :**
+Les cycles d'amélioration sont documentés sur [nope.breizhland.eu](https://nope.breizhland.eu) :
+- [v3.1 — premier bilan par label](/victor-anonyner-v31-bilan)
+- [v3.11 — CTU-13 + KernelDriver](/victor-anonyner-v311-nouveaux-datasets)
+- [v3.16 — migration RoBERTa, diagnostic FN, +8 points F1](/victor-anonyner-v315-transformer-diagnostic)
+- [v3.19 — URL_URI, SCHEDULED_TASK 100%, KEY_FINGERPRINT](/victor-anonyner-v319-url-scheduled-key)
+
+**Interprétation des statuts batch :**
 - `clean` — zéro gap résiduel, anonymisation complète
 - `partial` — gaps résiduels détectés, relecture recommandée
 - `error` — fichier non traitable (encodage inconnu, binaire…)
-
-### Analyse qualitative du mapping
-
-L'examen du `batch_mapping.json` révèle des résultats mitigés sur ce format de log :
-
-| Entrée capturée | Token attribué | Verdict |
-|-----------------|----------------|---------|
-| `sshd(pam_unix)[19937]:` | `{{IFACE_001}}` | ❌ Process+PID → classifié Interface |
-| `sshd(pam_unix)[20882` | `{{SVC_ACCOUNT_001}}` | ⚠️ Process+PID → Service Account (approximatif) |
-| `14:53:32` | `{{IP_001}}` | ❌ Timestamp → classifié IP |
-| `12:13:20` | `{{FW_RULE_002}}` | ❌ Timestamp → classifié Firewall Rule |
-| `]:` | `{{MAC_001}}` | ❌ Ponctuation → classifié MAC |
-| `=` | `{{VPN_USER_001}}` | ❌ Signe égal → classifié VPN User |
-| `uid=0` | `{{PORT_001}}` | ❌ UID root → classifié Port |
-| `1` | `{{FW_RULE_001}}` | ❌ Entier → classifié Firewall Rule |
-| `rhost=220-135-151-1.hinet-ip.hinet.net` | `{{HOST_001}}` | ⚠️ Correct mais inclut le préfixe `rhost=` |
-
-**Diagnostic :** AnonyNER a été entraîné principalement sur des logs réseau et firewall
-(OPNsense, CrowdSec, WireGuard). Les Linux syslogs ont un format structuré différent —
-`process(subsystem)[pid]:` — que le modèle ne reconnaît pas nativement. Il projette
-les labels familiers (IP, MAC, IFACE) sur des fragments syntaxiques similaires en surface,
-produisant de nombreux faux positifs.
-
-**Ce que ce test démontre :**
-- Les custom rules (regex RFC1918, CVE, FQDN…) fonctionnent indépendamment du modèle NER
-- Le modèle AnonyNER v3 est spécialisé logs réseau/firewall — les logs applicatifs Linux
-  nécessitent un enrichissement du corpus d'entraînement
-- Le `batch_report.json` + `batch_mapping.json` permettent d'identifier précisément
-  les zones à corriger avant d'utiliser les fichiers anonymisés
 
 ---
 
