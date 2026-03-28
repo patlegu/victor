@@ -1,6 +1,7 @@
 # Victor
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub release](https://img.shields.io/github/v/release/patlegu/victor)](https://github.com/patlegu/victor/releases/latest)
 
 ---
 
@@ -18,9 +19,11 @@ S'améliore automatiquement au fil des logs via une boucle de détection de gaps
 python -m venv venv && source venv/bin/activate
 pip install -e .
 
-# Modèle AnonyNER (recommandé — entités cyber)
-# Voir les releases pour la dernière version disponible
+# Modèle AnonyNER v0.1.0 (recommandé — 30 labels, F1 96%, entités cyber)
 pip install https://github.com/patlegu/victor/releases/latest/download/en_anonyner-latest.tar.gz
+
+# Version épinglée
+# pip install https://github.com/patlegu/victor/releases/download/v0.1.0/en_anonyner-0.1.0.tar.gz
 
 # Modèle générique (fallback sans entités cyber)
 # python -m spacy download en_core_web_md
@@ -442,17 +445,17 @@ Ajouter des règles manuellement dans le JSON ou via `RuleWriter.add()`.
 
 Évaluation sur corpus de dev (20% du corpus d'entraînement, ~5 000 documents). Sources : LogHub, CTU-13, OTRF Windows, Apache Elastic, logs synthétiques multi-formats.
 
-| Métrique | v3.0 (tok2vec) | v3.11 | v3.16 (RoBERTa) | v3.20 (actuel) |
-|----------|---------------|-------|-----------------|----------------|
+| Métrique | v3.0 (tok2vec) | v3.11 | v3.16 (RoBERTa) | v3.20 → AnonyNER v0.1.0 |
+|----------|---------------|-------|-----------------|------------------------|
 | F1 global | 82.4% | 88.0% | 95.9% | **96%** |
 | Corpus | ~3 000 | ~16 000 | ~22 000 | ~25 000 |
 | Labels | 20 | 25 | 27 | **30** |
 
 Les cycles d'amélioration sont documentés sur [nope.breizhland.eu](https://nope.breizhland.eu) :
-- [v3.1 — premier bilan par label](/victor-anonyner-v31-bilan)
-- [v3.11 — CTU-13 + KernelDriver](/victor-anonyner-v311-nouveaux-datasets)
-- [v3.16 — migration RoBERTa, diagnostic FN, +8 points F1](/victor-anonyner-v315-transformer-diagnostic)
-- [v3.19 — URL_URI, SCHEDULED_TASK 100%, KEY_FINGERPRINT](/victor-anonyner-v319-url-scheduled-key)
+- [v3.1 — premier bilan par label](https://nope.breizhland.eu/victor-anonyner-v31-bilan)
+- [v3.11 — CTU-13 + KernelDriver](https://nope.breizhland.eu/victor-anonyner-v311-nouveaux-datasets)
+- [v3.15 — migration RoBERTa, diagnostic FN, +8 points F1](https://nope.breizhland.eu/victor-anonyner-v315-transformer-diagnostic)
+- [v3.19 — URL_URI, SCHEDULED_TASK 100%, KEY_FINGERPRINT](https://nope.breizhland.eu/victor-anonyner-v319-url-scheduled-key)
 
 **Interprétation des statuts batch :**
 - `clean` — zéro gap résiduel, anonymisation complète
